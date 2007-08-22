@@ -1,0 +1,5 @@
+#ReturnType	pointer-0|int-1  lib_name struct_name mem_name 
+#---------------------------------------------------------
+^_void,		0,		apache,		scheme_filter_ctx,context
+^_void,		0,		apache,		scheme_filter_ctx,bb
+#

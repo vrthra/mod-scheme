@@ -1,0 +1,12 @@
+#ReturnType	pointer-0|int-1  lib_name struct_name mem_name 
+#---------------------------------------------------------
+#^_void,		0,		apache,		ap_filter_rec_t,	name	
+#(ap_filter_rec_t,filter_func)
+#^_void,		0,		apache,		ap_filter_rec_t,	filter_init_func
+#^_void,		0,		apache,		ap_filter_rec_t,	ftype	
+#^_void,		0,		apache,		ap_filter_rec_t,	next	
+#^_void,		0,		apache,		ap_filter_t,	frec
+#^_void,		0,		apache,		ap_filter_t,	ctx
+#^_void,		0,		apache,		ap_filter_t,	next
+#^_void,		0,		apache,		ap_filter_t,	r
+#^_void,		0,		apache,		ap_filter_t,	c

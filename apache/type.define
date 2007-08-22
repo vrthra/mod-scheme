@@ -1,0 +1,14 @@
+APR_RING_ENTRY(apr_bucket)=void*
+APR_RING_HEAD(apr_bucket_list,apr_bucket)=void*
+APR_RING_ENTRY(apr_bucket)=void&
+APR_RING_HEAD(apr_bucket_list,apr_bucket)=void&
+apr_bucket_refcount=apr_bucket_refcount&
+apr_bucket_heap=apr_bucket_heap&
+APR_RING_ENTRY(apr_mmap_t)=void&
+apr_descriptor=apr_descriptor&
+apr_text_header=apr_text_header&
+apr_finfo_t=apr_finfo_t&
+apr_uri_t=apr_uri_t&
+
+
+

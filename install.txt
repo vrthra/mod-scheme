@@ -1,0 +1,9 @@
+compile mod_scheme using 
+gmake
+after the compilation, the mod_scheme.so file will be available in 
+./.lib/mod_scheme.so
+copy this file to apache module directory (usualy /usr/local/apache2/modules)
+then open the inline-httpd.conf and update the 
+/usr/local/apache2/conf/httpd.conf with necessary entries 
+(the inline-httpd.conf provides examples for filters handlers and location)
+

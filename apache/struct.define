@@ -1,0 +1,3 @@
+command_struct=command_rec
+cmd_parms_struct=cmd_parms
+module_struct=module

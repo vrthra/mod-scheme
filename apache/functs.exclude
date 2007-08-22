@@ -1,0 +1,69 @@
+#undefed
+apr_brigade_consume
+#contains a struct as param
+apr_dbm_fetch
+apr_dbm_store
+apr_dbm_delete
+apr_dbm_exists
+apr_dbm_freedatum
+#have a cleanup function as argument
+file_data_set
+#have a big function as an argument
+apr_hash_merge
+#dont do arrays now
+apr_md4_final
+apr_md4
+apr_md5_final
+apr_md5
+#struct
+apr_sdbm_fetch
+apr_sdbm_store
+apr_sdbm_delete
+ap_regexec
+ap_pregsub
+#!Have sigaction
+apr_signal
+#AP_MPM_USES_POD
+ap_mpm_pod_open
+ap_mpm_pod_check
+ap_mpm_pod_close
+ap_mpm_pod_signal
+ap_mpm_pod_killpg
+#has a function
+apr_proc_other_child_register
+#link errors
+apr_file_namedpipe_create
+apr_socket_from_file
+apr_os_pipe_put
+apr_os_pipe_put_ex
+apr_proc_mutex_cleanup
+apr_procattr_limit_set
+apr_proc_fork
+apr_proc_detach
+apr_setup_signal_thread
+apr_xlate_conv_char
+apu_version
+apu_version_string
+ap_lingering_close
+ap_get_request_note
+ap_setup_make_content_type
+ap_die
+ap_uname2id
+apr_pool_find
+apr_pool_num_bytes
+ap_scan_script_header_err_core
+ap_scan_script_header_err_strs
+#IF HAS_THREADS
+apr_allocator_mutex_set
+apr_allocator_set_mutex
+apr_allocator_mutex_get
+apr_allocator_get_mutex
+#funct ptr
+ap_method_list_vdo
+#two defins checking on APR_ENABLE
+apr_generate_random_bytes
+#ap_escape_html
+#ap_ind
+#not defined
+ap_register_request_note
+ap_gname2id

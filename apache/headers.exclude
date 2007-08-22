@@ -1,0 +1,26 @@
+#Win32 only
+ap_regkey.h
+apr_inherit.h
+expat.h
+#not yet ready.
+mod_proxy
+pcre.h
+util_ldap.h
+mod_dav.h
+http_config.h
+#defined by macros
+apr_ldap_url.h
+apr_portable.h
+apr_queue.h
+apr_reslist.h
+apr_thread_cond.h
+apr_thread_mutex.h
+apr_thread_proc.h
+apr_thread_rwlock.h
+mod_ssl.h
+ssl_expr.h
+ssl_expr_parse.h
+ssl_toolkit_compat.h
+ssl_util_ssl.h
+ssl_util_table.h
+#avoid last blank line

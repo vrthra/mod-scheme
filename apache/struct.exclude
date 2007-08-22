@@ -1,0 +1,40 @@
+#AP_ENABLE_EXCEPTION_HOOK [ap_mpm] win32
+ap_exception_info_t
+#!APR_HAVE_IN_ADDR
+in_addr
+#ifdefined BEOS
+apr_os_proc_mutex_t
+#beos
+apr_mmap_t->area
+#APR_ENABLE_FOR_1_0
+apr_os_sock_info_t->protocol
+#nothread
+apr_os_global_mutex_t
+#bitfields
+apr_uri_t->is_initialized
+apr_uri_t->dns_looked_up
+apr_uri_t->dns_resolved
+#array cantdo yet
+piped_log->fds
+#bitfield
+conn_rec->aborted
+conn_rec->double_reverse
+#mpm uses pod
+ap_pod_t
+#have times
+worker_score->times
+#array
+worker_score->client
+worker_score->request
+worker_score->vhost
+#union
+ap_filter_rec_t->filter_func
+#have an internal enum, cant handle
+apr_bucket_type_t
+#WIN32
+apr_mmap_t->mhandle
+apr_mmap_t->mv
+apr_mmap_t->pstart
+apr_mmap_t->psize
+apr_mmap_t->poffset
+worker_score->tid
