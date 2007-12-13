@@ -5,35 +5,72 @@ $genstruct.pl <output-dir> -def
 
 $gencallback.pl <output-dir> -dec
 $gencallback.pl <output-dir> -def
---I use gen as output dir for general *.h in apache and auxiliary as output dir for things I need to add by hand
+--I use gen as output dir for general *.h in apache and auxiliary as output dir
+for things I need to add by hand
 
-The *.stpl files are templates for creating struct-accessor functions. The format of these files are (Presented in vertical - )
-[ReturnType] The type of the member. (I have used P_void -- void * in most places where any type of pointer is used and other datatypes like int where required.)
+The *.stpl files are templates for creating struct-accessor functions. The
+format of these files are (Presented in vertical - )
 
-[if pointer 0|if int 1] The data type that we are using, (whether it is int or of type pointer, this is related to what you used in the [ReturnType])
+[ReturnType]
+    The type of the member. (I have used P_void -- void * in most places
+    where any type of pointer is used and other datatypes like int where
+    required.)
 
-[lib_name] The name you want to prefix your struct function with when you are accessing it from scheme.  eg. (apache:request_rec->connection r) where the libname is "apache"
+[if pointer 0|if int 1]
+    The data type that we are using, (whether it is int or of type
+    pointer, this is related to what you used in the [ReturnType])
 
-[struct name] The name of the structure. In the previous example the "request_rec" is the struct name (this is the C name and the same will be used in scheme)
+[lib_name]
+    The name you want to prefix your struct function with when you are
+    accessing it from scheme.  eg. (apache:request_rec->connection r)
+    where the libname is "apache"
 
-[member which has to be accessed] The member of struct that you want to access from scheme in C, in the previous example it is "connection"
+[struct name]
+    The name of the structure. In the previous example the "request_rec"
+    is the struct name (this is the C name and the same will be used in
+    scheme)
 
-The *.tpl files are templates for generating reflected scheme callback functions for apache APIs. The format of these files are (Presented in vertical -)
+[member which has to be accessed]
+    The member of struct that you want to access from scheme in C, in
+    the previous example it is "connection"
 
-[macro?] If the declaration is macro or not? This is used because the macros are declared in uppercase, and so it has to be handled separately. (Do not use macro for a macro declared in lower case the generated function name will be in all uppercase.) Perhaps this check is spurious, and needs to be handled separately??
+----------------------------------------------------------------------
+The *.tpl files are templates for generating reflected scheme callback
+functions for apache APIs. The format of these files are (Presented
+in vertical -)
 
-[ReturnType] The return type of the function. If the return type is specified as void, a return value will not be looked for.
+[macro?]
+    If the declaration is macro or not? This is used because the macros
+    are declared in uppercase, and so it has to be handled separately.
+    (Do not use macro for a macro declared in lower case the generated
+    function name will be in all uppercase.) Perhaps this check is
+    spurious, and needs to be handled separately??
 
-[pointer0|int1] The specification of return type if the return type is int then mark it as 1 in all other cases it is 0 (only pointer and int is handled, in case of void it is 0.)
+[ReturnType]
+    The return type of the function. If the return type is specified as
+    void, a return value will not be looked for.
 
-[lib_name] The name you want to prefix your function with, 
+[pointer0|int1]
+    The specification of return type if the return type is int then mark
+    it as 1 in all other cases it is 0 (only pointer and int is handled,
+    in case of void it is 0.)
 
-[function_name] The name of the function, If you have specified your function type as macro, the name you specify here will be uppercased and used inside the C functions while it will be used in the same case you declare here if it is not defined as a macro
+[lib_name]
+    The name you want to prefix your function with, 
 
-[arg_type  pointer|int] any number of arguments with the format 
-type, pointer|int, type, pointer|int .....
+[function_name]
+    The name of the function, If you have specified your function type as
+    macro, the name you specify here will be uppercased and used inside
+    the C functions while it will be used in the same case you declare here
+    if it is not defined as a macro
+
+[arg_type  pointer|int]
+    any number of arguments with the format 
+    type, pointer|int, type, pointer|int .....
+
 eg:.
 	P_apr_pool_t,0,apr_time_t,1,P_char,0,int,1
+
 It means that first argument is of type P_apr_pool and is a pointer (0),
 second argument is of type apr_time and is of type int (1)
 third argument is of type P_char and is a pointer (0)
@@ -58,14 +95,18 @@ eg my_calls.c and the required stpl and tpl files
 
 //end auto----struct
 void load_my_calls_symbols(scheme *sc) {
-//define your constants here eg/*
+//define your constants here eg
+/*
 	DEFINE_APACHE_REF_CONST(my,small_const,MY_SMALL_CONST);
-the first argument is the prefix second is the name which will be added to prefix, and third is the C constant or #defined name the constant will be accessible as my:small_const
+    the first argument is the prefix second is the name which will be added
+    to prefix, and third is the C constant or #defined name the constant will
+    be accessible as my:small_const
 */
 	#include "my_calls.stpl.o.c"
 	#include "my_calls.tpl.o.c"
 }
-//the files being included are optional, if you have only structs, you can safely ignore the *.stpl.* files
+//the files being included are optional, if you have only structs, you can
+//safely ignore the *.stpl.* files
 ----file--my_calls.c--->>>
 
 ----file--my_calls.stpl---<<<
@@ -110,7 +151,8 @@ edit the use_symbol function and add your symbol loader as one of the case optio
 		  break;
 
 
-edit scheme_load_apache_tie_symbols function and define your "use string" as one of the consts,
+edit scheme_load_apache_tie_symbols function and define your "use string" as one
+of the consts,
 	DEF_CONST("my:lib",REF_MY_LIB)
 
 run {
@@ -120,16 +162,20 @@ $genstruct.pl <output-dir> -def
 $genstruct.pl <output-dir> -dec
 } these
 
-in case you are using vc, you will have to add your my_call.c to the project, In case you are on a unix system, edit the modules.mk and add my_call.slo as a dependency to mod_scheme.la
+in case you are using vc, you will have to add your my_call.c to the project,
+In case you are on a unix system, edit the modules.mk and add my_call.slo as a
+dependency to mod_scheme.la
 
 ----file--modules.mk---<<<
-mod_scheme.la: mod_scheme.slo scheme.slo dynload.slo callback.slo apache_tie.slo internal.slo \
-	apache/scheme_util_filter.slo apache/scheme_apr_buckets.slo apache/scheme_httpd.slo apache/scheme_apr.slo \
-	apache/scheme_apr_general.slo \
+mod_scheme.la: mod_scheme.slo scheme.slo dynload.slo callback.slo \
+    apache_tie.slo internal.slo apache/scheme_util_filter.slo \
+    apache/scheme_apr_buckets.slo apache/scheme_httpd.slo
+    apache/scheme_apr.slo apache/scheme_apr_general.slo
 	apache/my_calls.slo                    #<<---------see here
-	$(SH_LINK) -rpath $(libexecdir) -module -avoid-version  mod_scheme.lo scheme.lo dynload.lo callback.lo \
-	apache_tie.lo internal.lo scheme_util_filter.lo scheme_apr_buckets.lo scheme_httpd.lo \
-	scheme_apr.lo scheme_apr_general.lo \
+	$(SH_LINK) -rpath $(libexecdir) -module -avoid-version \
+    mod_scheme.lo scheme.lo dynload.lo callback.lo \
+	apache_tie.lo internal.lo scheme_util_filter.lo scheme_apr_buckets.lo \
+    scheme_httpd.lo scheme_apr.lo scheme_apr_general.lo \
 	my_calls.lo                            #<<---------see here
 DISTCLEAN_TARGETS = modules.mk
 shared =  mod_scheme.la
@@ -140,18 +186,24 @@ edit Makefile and modify these entries
 ----file--Makefile---==<
 clean:
 	-rm -f mod_scheme.o mod_scheme.lo mod_scheme.slo mod_scheme.la \
-	scheme.o scheme.lo dynload.o dynload.slo dynload.la callback.o callback.lo callback.slo \
-	apache_tie.o internal.o apache/scheme_util_filter.o apache/scheme_apr_buckets.o apache/scheme_httpd.o \
-	apache/scheme_apr.o apache/scheme_apr_general.o \
+	scheme.o scheme.lo dynload.o dynload.slo dynload.la callback.o \
+    callback.lo callback.slo apache_tie.o internal.o \
+    apache/scheme_util_filter.o apache/scheme_apr_buckets.o \
+    apache/scheme_httpd.o apache/scheme_apr.o apache/scheme_apr_general.o \
 	apache/my_calls.o \                    #<<---------see here
-	apache_tie.lo internal.lo apache/scheme_util_filter.lo apache/scheme_apr_buckets.lo apache/scheme_httpd.lo \
-	apache/scheme_apr.lo apache/scheme_apr_general.lo \
+	apache_tie.lo internal.lo apache/scheme_util_filter.lo \
+    apache/scheme_apr_buckets.lo apache/scheme_httpd.lo apache/scheme_apr.lo \
+    apache/scheme_apr_general.lo \
 	apache/my_calls.lo \                   #<<---------see here
-	apache_tie.slo internal.slo apache/scheme_util_filter.slo apache/scheme_apr_buckets.slo apache/scheme_httpd.slo \
+	apache_tie.slo internal.slo apache/scheme_util_filter.slo \
+    apache/scheme_apr_buckets.slo apache/scheme_httpd.slo \
 	apache/scheme_apr.slo apache/scheme_apr_general.slo \
 	apache/my_calls.slo                    #<<---------see here
 
 ----file--Makefile---==>
 
-New functions can be added by directly entering them into the mod_scheme, See the implementation of  scheme_read_post_data,
-The addition of new libraries (dynamic loading ) as supported by tinyscheme is also supported, For more information on that, refer to Tinyscheme documentation.
+New functions can be added by directly entering them into the mod_scheme, See
+the implementation of  scheme_read_post_data,
+The addition of new libraries (dynamic loading ) as supported by tinyscheme is
+also supported, For more information on that, refer to Tinyscheme documentation.
+
