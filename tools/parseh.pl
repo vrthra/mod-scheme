@@ -121,8 +121,8 @@ sub eval_line_functs {
 sub eval_ret_functs {
     my $str = shift;
     my %ret;
-#		print $str."\n";
-#		([^ \t*&]+)
+#        print $str."\n";
+#        ([^ \t*&]+)
     if ($str =~ /[ \t]*
         (const)*#if it is a constant or not                                             =>$1
         [ \t]*
@@ -143,8 +143,8 @@ sub eval_ret_functs {
 # Try to assimilate the arguments to the function. We do not handle varargs since 
 # it is difficult to use it with scheme.
 #APR_DECLARE(apr_status_t) apr_getopt_long(apr_getopt_t *os,
-#					  const apr_getopt_option_t *opts,
-#					  int *option_ch,
+#                      const apr_getopt_option_t *opts,
+#                      int *option_ch,
 #                                          const char **option_arg);
 #
 sub eval_args_functs {
@@ -174,7 +174,7 @@ sub eval_args_functs {
 
     foreach $arg (@args) {
         # We try to handle all special cases first. 
-        
+
         # We dont really care about constant arguments, so remove them.
         $arg =~ s/\bconst\b/ /g;
 
@@ -248,7 +248,7 @@ sub eval_functs {
 
 sub header_loop {
     foreach $file (<${apache_inc_dir}/*.h>) {
-        
+
         # exclude_header checks if we have been explicitly asked to ignore this 
         # header file, [which may happen if it is platform specific or np]
         next if exclude_header($file);
@@ -266,7 +266,7 @@ sub header_loop {
         # and captures all the function declarations [AP/APR_DECLARE] into one big array.
         my @functs = split(/;/, join ( "" , eval_file_functs( \@lines ) ));
 
-        
+
         # Take the String array of functions and transform them into a parsed datastructure.
         my @func_struct;
         foreach my $func (@functs) {
@@ -275,22 +275,22 @@ sub header_loop {
 
 
         foreach my $func (@func_struct) {
-            
+
             #ignore all the excluded functions
             next if exclude_function($func->{"funct"});
 
             #print the table only if we were able to parse
             if ($func->{"parse"} == 1) {
-                
+
                 # If we had a varargs function [eval_args_functs returned -1] write it out as comment
-#-----------------Varargs---------------						
+#-----------------Varargs---------------                        
                 if ($func->{"args"} == -1 ) {
                     print $out "#";#comment
                 }
 
                 # We denote the difference between a macro and a function by 0=>function 1=>macro in 
                 # the table
-#-----------------Macro---------------						
+#-----------------Macro---------------                        
                 print $out "0,\t";#Macro
 
                 # get_ptr_prefix generates a string from the pointer type ie. * x == ^_x and **x => ^^_x
@@ -304,7 +304,7 @@ sub header_loop {
 
                 # Check its library namespace. Since all apache exports starts with AP or APR
                 # we assume AP_XXX is of library AP and APR_XXX is of library APR
-#-----------------LibName---------------						
+#-----------------LibName---------------                        
                 if ($func->{"funct"} =~ /[ \t]*([^_ \t]+)_([^ \t]+)[ \t]*/x) {
                     print $out $1.",\t";
                     print $out $2."\t";#Remove the commas so that arg type can give their own starting
@@ -344,12 +344,12 @@ sub init_excludes {
 }
 
 sub exclude_function {
-	my $arg = shift;
-	foreach (@g_exclude_function) {
-			chomp;
-			return 1 if $arg =~ $_;
-	}
-	return 0;
+    my $arg = shift;
+    foreach (@g_exclude_function) {
+        chomp;
+        return 1 if $arg =~ $_;
+    }
+    return 0;
 }
 
 #   Start the whole thing and cross your fingers.

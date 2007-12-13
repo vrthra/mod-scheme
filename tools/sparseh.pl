@@ -185,11 +185,11 @@ sub eval_struct {
 }
 
 sub eval_typedef {
-	my $struct = shift;
-	if ($struct =~ /^[ \t]*typedef[ \t]*struct[ \t]+([^{ \t]+)[ \t]*[{]+(.*)[}]+[ \t]*([^ \t;]+)[ \t]*;[ \t]*$/) {
-			my $struct_name = $3;
-			return eval_args_structs($2,$struct_name);
-	}
+    my $struct = shift;
+    if ($struct =~ /^[ \t]*typedef[ \t]*struct[ \t]+([^{ \t]+)[ \t]*[{]+(.*)[}]+[ \t]*([^ \t;]+)[ \t]*;[ \t]*$/) {
+            my $struct_name = $3;
+            return eval_args_structs($2,$struct_name);
+    }
 }
 sub eval_structs {
     my $struct = shift;
@@ -219,9 +219,9 @@ sub exclude_struct_member {
 }
 
 sub eat_tabs{
-		my $var = shift;
-		$var =~ s/[ \t]*//g;
-		return $var;
+        my $var = shift;
+        $var =~ s/[ \t]*//g;
+        return $var;
 }
 
 sub header_loop {
