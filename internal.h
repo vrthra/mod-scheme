@@ -2,7 +2,7 @@
  *      contains the interpretor queue datastructure definitions
  * */
 #ifndef INTERNAL_H
-	#define INTERNAL_H
+    #define INTERNAL_H
 #include "scheme-private.h"
 #include "scheme.h"
 #include "callback.h"

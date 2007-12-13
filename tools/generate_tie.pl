@@ -159,6 +159,9 @@ sub create_proto_apache_symbols {
 #include "scheme.h"
 #include "scheme-private.h"
 #include "apache/macros.h"
+
+/*Not the place to do it, but there is no other place*/
+#include "apr_dbd.h"
 EOF
 
     return $src;
@@ -177,7 +180,7 @@ void scheme_load_apache_symbols(scheme *sc) {
 }
 TMPL
     my $line = <<LINE;
-            DEF_CONST("apache:%s",REF_%s)
+    DEF_CONST("apache:%s",REF_%s)
 LINE
     foreach $h (@$headers) {
         $src.= sprintf($line, ($h, uc($h)));

@@ -14,7 +14,7 @@ format of these files are (Presented in vertical - )
 [ReturnType]
     The type of the member. (I have used P_void -- void * in most places
     where any type of pointer is used and other datatypes like int where
-    required.)
+    required. -- not exactly portable (not guaranteed by C).)
 
 [if pointer 0|if int 1]
     The data type that we are using, (whether it is int or of type

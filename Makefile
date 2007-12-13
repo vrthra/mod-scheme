@@ -5,7 +5,6 @@
 
 builddir=$(shell pwd)
 #builddir=/usr/local/src/mod_scheme
-#top_srcdir=/web/mod_scheme
 top_srcdir=/usr/local/apache2
 top_builddir=/usr/local/apache2
 include /usr/local/apache2/build/special.mk

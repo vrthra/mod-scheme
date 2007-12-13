@@ -38,3 +38,7 @@ apr_mmap_t->pstart
 apr_mmap_t->psize
 apr_mmap_t->poffset
 worker_score->tid
+
+# returns a struct
+conn_state_t->timeout_list
+
