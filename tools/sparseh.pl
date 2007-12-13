@@ -11,7 +11,6 @@ use Utils;
 
 $g_out_dir = "gen";
 $g_ext = "stpl";
-$apache_inc_dir = shift @ARGV;
 @g_exclude_struct;
 
 
@@ -206,9 +205,11 @@ sub init_excludes {
 
 sub exclude_struct {
     my $arg = shift;
-    foreach (@g_exclude_struct) {
-        chomp ;
-        return 1 if ($arg =~ /$_/);
+    foreach my $line (@g_exclude_struct) {
+        chomp $line;
+        next if $line =~ /^[ \t]*$/;
+        next if $line =~ /^[ \t]*#/;
+        return 1 if ($arg =~ /$line/);
     }
     return 0;
 }
@@ -225,6 +226,7 @@ sub eat_tabs{
 }
 
 sub header_loop {
+    my $apache_inc_dir = shift;
     foreach $file (<${apache_inc_dir}/*.h>) {
 
         # exclude_header checks if we have been explicitly asked to ignore this 
@@ -260,7 +262,6 @@ sub header_loop {
         #   exclude member which excludes individual memebers from going into the template files.
         #--fmt {{
         my @structs = split(/([}]+[^}{;]*;)/, join ( "" , eval_file_structs( \@lines ) ));
-
         for (my $i = 0; $i < $#structs; $i += 2) {
             my $arg_array = eval_structs($structs[$i].$structs[$i+1]);
             foreach my $arg (@$arg_array) {
@@ -280,7 +281,8 @@ sub header_loop {
 
                     #----------the structure and member names
                     print $out $arg->{"struct"}.",\t";
-                    print $out $arg->{"member"}."\n" 
+                    print $out $arg->{"member"}."\n";
+
                 }
             }
         }
@@ -291,4 +293,7 @@ sub header_loop {
 
 &init_excludes;
 &init_def;
-&header_loop;
+
+foreach my $inc (@ARGV) {
+    &header_loop($inc);
+}

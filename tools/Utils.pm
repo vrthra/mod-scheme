@@ -34,9 +34,11 @@ sub init_exclude_header {
 
 sub exclude_header {
     my $file = shift;
-    foreach (@g_exclude_header) {
-        chomp;
-        return 1 if $file =~ $_;
+    foreach my $line (@g_exclude_header) {
+        chomp $line;
+        next if $line =~ /^[ \t]*$/;
+        next if $line =~ /^[ \t]*#/;
+        return 1 if $file =~ $line;
     }
     return 0;
 }

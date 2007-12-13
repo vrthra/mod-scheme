@@ -19,6 +19,7 @@ APACHECTL=apachectl
 INC=-I/usr/include/sys
 #LIB=-Lmy/lib/dir -lmylib
 APACHE_INCLUDE=/usr/local/apache2/include
+APR_INCLUDE=/usr/local/include/apr-1
 
 #   the default target
 all: gen local-shared-build
@@ -27,31 +28,33 @@ all: gen local-shared-build
 install: install-modules
 
 #   cleanup
-clean:
-	@rm -f mod_scheme.o mod_scheme.lo mod_scheme.slo mod_scheme.la \
-	scheme.o scheme.lo dynload.o dynload.slo dynload.la callback.o callback.lo callback.slo \
-	apache_tie.o apache_symbols.o internal.o apache/gen/*.* apache/auxiliary/*.o \
-	apache_tie.lo apache_symbols.lo internal.lo \
-	apache_tie.slo apache_symbols.slo internal.slo 
-	@rm -f apache_gen aux_gen
-	@rm -f apache/gen/*.tpl.* apache/gen/*.stpl.* apache/gen/*.html
-	@rm -f apache/auxiliary/*.stpl.i.c apache/auxiliary/*.stpl.o.c apache/auxiliary/*.tpl.i.c apache/auxiliary/*.tpl.o.c apache/auxiliary/*.html
-	@rm -rf .libs
-	@rm -f mod_scheme_bin.*
+clobber:
+	-rm -f mod_scheme.o mod_scheme.lo mod_scheme.slo scheme.slo mod_scheme.la \
+		scheme.o scheme.lo dynload.o dynload.slo dynload.la callback.o callback.lo callback.slo \
+		apache_tie.o apache_symbols.o internal.o
+	-rm -f apache/gen/*.*
+	-rm -f apache/auxiliary/*.o 
+	-rm -f apache_tie.lo apache_symbols.lo internal.lo \
+		apache_tie.slo apache_symbols.slo internal.slo 
+	-rm -f apache_gen aux_gen
+	-rm -f apache/gen/*.tpl.* apache/gen/*.stpl.* apache/gen/*.html
+	-rm -f apache/auxiliary/*.stpl.i.c apache/auxiliary/*.stpl.o.c apache/auxiliary/*.tpl.i.c apache/auxiliary/*.tpl.o.c apache/auxiliary/*.html
+	-rm -rf .libs
+	-rm -f mod_scheme_bin.*
 
 gen: apache_gen aux_gen
 
 apache_gen:
-	rm -rf .deps;touch .deps
-	cd apache;perl ../tools/parseh.pl $(APACHE_INCLUDE)
-	cd apache;perl ../tools/sparseh.pl $(APACHE_INCLUDE)
+	-rm -rf .deps;touch .deps
+	cd apache;perl ../tools/parseh.pl $(APACHE_INCLUDE) $(APR_INCLUDE)
+	cd apache;perl ../tools/sparseh.pl $(APACHE_INCLUDE) $(APR_INCLUDE)
 	cd apache;perl ../tools/gencallback.pl gen gen -def
 	cd apache;perl ../tools/gencallback.pl gen gen -dec
 	cd apache;perl ../tools/gencallback.pl gen gen -doc
 	cd apache;perl ../tools/genstruct.pl gen gen -def
 	cd apache;perl ../tools/genstruct.pl gen gen -dec
 	cd apache;perl ../tools/genstruct.pl gen gen -doc
-	cd apache;perl ../tools/generate_tie.pl gen $(APACHE_INCLUDE)
+	cd apache;perl ../tools/generate_tie.pl gen $(APACHE_INCLUDE) $(APR_INCLUDE)
 	echo > apache_gen
 
 aux_gen:
@@ -81,7 +84,7 @@ stop:
 	$(APACHECTL) stop
 
 bundle:
-	rm -rf release;mkdir release;mkdir release/docs;mkdir release/tinyscheme;mkdir release/htdocs; mkdir release/init; mkdir release/conf; mkdir release/dist
+	-rm -rf release;mkdir release;mkdir release/docs;mkdir release/tinyscheme;mkdir release/htdocs; mkdir release/init; mkdir release/conf; mkdir release/dist
 	#cp ./.libs/mod_scheme.so ./release/
 	cp ./dist/* ./release/dist
 	cp ./apache/gen/*.html ./release/docs/

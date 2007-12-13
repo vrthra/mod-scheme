@@ -16,7 +16,7 @@
 #   argument. I left these out as it is difficult to represent these in scheme.[TODO:]
 #   varargs are also ignored.
 #
-#$apache_inc_dir = "C:/tools/serv/Apache2/include";
+
 use lib qw(../tools);
 use Utils;
 #Globals
@@ -24,7 +24,6 @@ use Utils;
 
 $g_out_dir = "gen";
 $g_ext = "tpl";
-$apache_inc_dir = shift @ARGV;
 
 #   The main parser loop, here we analyze the contents of each lines [passed as
 #   line from the main header loop], remove comments from it, and parse the 
@@ -247,6 +246,7 @@ sub eval_functs {
 #   out of it
 
 sub header_loop {
+    my $apache_inc_dir = shift;
     foreach $file (<${apache_inc_dir}/*.h>) {
 
         # exclude_header checks if we have been explicitly asked to ignore this 
@@ -345,13 +345,17 @@ sub init_excludes {
 
 sub exclude_function {
     my $arg = shift;
-    foreach (@g_exclude_function) {
-        chomp;
-        return 1 if $arg =~ $_;
+    foreach my $line (@g_exclude_function) {
+        chomp $line;
+        next if $line =~ /^[ \t]*$/;
+        next if $line =~ /^[ \t]*#/;
+        return 1 if $arg =~ $line;
     }
     return 0;
 }
 
 #   Start the whole thing and cross your fingers.
 &init_excludes;
-&header_loop;
+foreach my $inc (@ARGV) {
+    &header_loop($inc);
+}

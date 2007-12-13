@@ -1,7 +1,6 @@
 #creates the scheme_*.c and scheme_*.h files
 #$apache_inc_dir = "C:/work/servers/Apache/2.0.50/Apache2/include";
 $g_output_dir = shift @ARGV;
-$apache_inc_dir = shift @ARGV;
 
 {
     my @exclude_header;
@@ -14,15 +13,18 @@ $apache_inc_dir = shift @ARGV;
 
     sub exclude_header {
         my $file = shift;
-        foreach (@exclude_header) {
-            chomp;
-            return 1 if $file =~ $_;
+        foreach my $line (@exclude_header) {
+            chomp $line;
+            next if $line =~ /^[ \t]*$/;
+            next if $line =~ /^[ \t]*#/;
+            return 1 if $file =~ $line;
         }
         return 0;
     }
 }
 
 sub gen_src_and_headers {
+    my $apache_inc_dir = shift;
     my $c_src = <<CSRC;
 /**
 * %s
@@ -93,7 +95,7 @@ HSRC
     }
 }
 #-----------------------------------------------------------------------------------------------------------------------------
-#
+
 sub create_inc_apache_symbols {
     my $headers = shift;
     my $src;
@@ -190,33 +192,42 @@ LINE
 }
 
 sub gen_apache_symbols {
-    my @apache_headers;
+    my $apache_inc_dir = shift;
+    my $apache_headers = shift;
     foreach $file (<${apache_inc_dir}/*.h>) {
-        next if exclude_header($file);
+        next if &exclude_header($file);
         if ($file =~ /.*\/([^.\/]+)[.]+h$/) {
             $file_name = $1;
         }
-        $apache_headers[$#apache_headers +1] = $file_name;
+        $$apache_headers[$#$apache_headers +1] = $file_name;
     }
 
+}
+
+sub generate {
+    my $apache_headers = shift;
     open APACHEH , ">${g_output_dir}/apache_symbols.c" or die "cant open apache_symbols.c";
     print APACHEH create_proto_apache_symbols();
 #        print APACHEH create_inc_apache_symbols(\@apache_headers);
-    print APACHEH create_enum_apache_symbols(\@apache_headers);
-    print APACHEH create_src_apache_symbols(\@apache_headers);
-    print APACHEH create_use_def_apache_symbols(\@apache_headers);
-    print APACHEH create_load_sym_apache_symbols(\@apache_headers);
+    print APACHEH create_enum_apache_symbols($apache_headers);
+    print APACHEH create_src_apache_symbols($apache_headers);
+    print APACHEH create_use_def_apache_symbols($apache_headers);
+    print APACHEH create_load_sym_apache_symbols($apache_headers);
     close APACHEH;
 }
 
-
+my @apache_headers;
 sub flow {
+    my $inc = shift;
     #first create all the scheme_*.c and scheme_*.h files that includes the 
     #stpl.i/o.c and tpl.i/o.c files with in them.
-    &gen_src_and_headers;
-    &gen_apache_symbols;
-
+    &gen_src_and_headers($inc);
+    &gen_apache_symbols($inc, \@apache_headers);
 }
 
-&flow;
+foreach my $inc (@ARGV) {
+    &flow($inc);
+}
+
+&generate(\@apache_headers);
 
