@@ -67,5 +67,4 @@ apr_generate_random_bytes
 #not defined
 ap_register_request_note
 ap_gname2id
-
-ap_dbd_prepare
+apr_xml_parser_convert_doc

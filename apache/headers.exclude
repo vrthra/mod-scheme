@@ -9,7 +9,12 @@ util_ldap.h
 mod_dav.h
 http_config.h
 #defined by macros
+apr_ldap.h
+apr_dbd.h
+mod_dbd.h
 apr_ldap_url.h
+apr_ldap_option.h
+apr_ldap_init.h
 apr_portable.h
 apr_queue.h
 apr_reslist.h

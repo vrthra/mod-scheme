@@ -41,4 +41,5 @@ worker_score->tid
 
 # returns a struct
 conn_state_t->timeout_list
+conn_state_t->pfd
 

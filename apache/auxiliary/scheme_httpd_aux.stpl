@@ -125,7 +125,7 @@ int,										1,		apache,conn_rec,double_reverse
 #int,										1,		apache,server_rec,limit_req_fieldsize
 #int,										1,		apache,server_rec,limit_req_fields
 #^_void,										0,		apache,core_output_filter_ctx_t,b
-^_void,										0,		apache,core_output_filter_ctx_t,deferred_write_pool
+#XXX: #^_void,										0,		apache,core_output_filter_ctx_t,deferred_write_pool
 #^_void,										0,		apache,core_ctx_t,b
 #^_void,										0,		apache,core_net_rec,client_socket
 #^_void,										0,		apache,core_net_rec,c

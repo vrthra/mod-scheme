@@ -162,8 +162,6 @@ sub create_proto_apache_symbols {
 #include "scheme-private.h"
 #include "apache/macros.h"
 
-/*Not the place to do it, but there is no other place*/
-#include "apr_dbd.h"
 EOF
 
     return $src;
