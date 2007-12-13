@@ -162,8 +162,8 @@ pointer scm_read_post_data(scheme *sc, pointer args) {
 
 void scheme_load_all_symbols(scheme *sc) {
     DEF_SYMBOL("apache:log",scm_log)
-        DEF_SYMBOL("apache:read_post_data",scm_read_post_data)
-        scheme_load_apache_symbols(sc);
+    DEF_SYMBOL("apache:read_post_data",scm_read_post_data)
+    scheme_load_apache_symbols(sc);
     scheme_load_apache_tie_symbols(sc);
     scheme_load_context_symbols(sc);
 }

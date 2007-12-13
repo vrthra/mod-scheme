@@ -28,16 +28,16 @@ install: install-modules
 
 #   cleanup
 clean:
-	rm -f mod_scheme.o mod_scheme.lo mod_scheme.slo mod_scheme.la \
+	@rm -f mod_scheme.o mod_scheme.lo mod_scheme.slo mod_scheme.la \
 	scheme.o scheme.lo dynload.o dynload.slo dynload.la callback.o callback.lo callback.slo \
 	apache_tie.o apache_symbols.o internal.o apache/gen/*.* apache/auxiliary/*.o \
 	apache_tie.lo apache_symbols.lo internal.lo \
 	apache_tie.slo apache_symbols.slo internal.slo 
-	rm -f apache_gen aux_gen
-	rm -f apache/gen/*.tpl.* apache/gen/*.stpl.* apache/gen/*.html
-	rm -f apache/auxiliary/*.stpl.i.c apache/auxiliary/*.stpl.o.c apache/auxiliary/*.tpl.i.c apache/auxiliary/*.tpl.o.c apache/auxiliary/*.html
-	rm -rf .libs
-	rm -f mod_scheme_bin.*
+	@rm -f apache_gen aux_gen
+	@rm -f apache/gen/*.tpl.* apache/gen/*.stpl.* apache/gen/*.html
+	@rm -f apache/auxiliary/*.stpl.i.c apache/auxiliary/*.stpl.o.c apache/auxiliary/*.tpl.i.c apache/auxiliary/*.tpl.o.c apache/auxiliary/*.html
+	@rm -rf .libs
+	@rm -f mod_scheme_bin.*
 
 gen: apache_gen aux_gen
 
