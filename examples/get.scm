@@ -5,9 +5,8 @@
 (define (do_service req)
   (display (apache:read_string 
              (apache:request_rec->args req)))
-  ;    (display  (apache:read_string 
-  ;        (apache:read_post_data req)))
-  (display (read_post_data req)))
+  ;;read_post_data does the display for us.
+  (read_post_data req))
 
 (function (for_each_brigade_loop bb)
   (let loop_brigades ((bucket (apr:brigade_first bb)))

@@ -34,7 +34,7 @@ clobber:
 		apache_tie.o apache_symbols.o internal.o
 	-rm -f apache/gen/*.*
 	-rm -f apache/auxiliary/*.o 
-	-rm -f apache_tie.lo apache_symbols.lo internal.lo \
+	-rm -f apache_tie.lo apache_symbols.lo internal.lo dynload.lo \
 		apache_tie.slo apache_symbols.slo internal.slo 
 	-rm -f apache_gen aux_gen
 	-rm -f apache/gen/*.tpl.* apache/gen/*.stpl.* apache/gen/*.html
