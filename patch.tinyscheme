@@ -1,0 +1,684 @@
+Index: dynload.c
+===================================================================
+RCS file: /var/cvsroot/tinyscheme/dynload.c,v
+retrieving revision 1.5
+diff -u -b -r1.5 dynload.c
+Index: dynload.h
+===================================================================
+RCS file: /var/cvsroot/tinyscheme/dynload.h,v
+retrieving revision 1.5
+diff -u -b -r1.5 dynload.h
+Index: opdefines.h
+===================================================================
+RCS file: /var/cvsroot/tinyscheme/opdefines.h,v
+retrieving revision 1.6
+diff -u -b -r1.6 opdefines.h
+--- opdefines.h	14 Dec 2007 19:08:39 -0000	1.6
++++ opdefines.h	14 Dec 2007 19:08:55 -0000
+@@ -115,6 +115,7 @@
+     _OP_DEF(opexe_3, "string?",                        1,  1,       TST_ANY,                         OP_STRINGP          )
+     _OP_DEF(opexe_3, "integer?",                       1,  1,       TST_ANY,                         OP_INTEGERP         )
+     _OP_DEF(opexe_3, "real?",                          1,  1,       TST_ANY,                         OP_REALP            )
++    _OP_DEF(opexe_3, "pointer?",                       1,  1,       TST_ANY,                         OP_POINTERP         )
+     _OP_DEF(opexe_3, "char?",                          1,  1,       TST_ANY,                         OP_CHARP            )
+ #if USE_CHAR_CLASSIFIERS
+     _OP_DEF(opexe_3, "char-alphabetic?",               1,  1,       TST_CHAR,                        OP_CHARAP           )
+Index: scheme-private.h
+===================================================================
+RCS file: /var/cvsroot/tinyscheme/scheme-private.h,v
+retrieving revision 1.6
+diff -u -b -r1.6 scheme-private.h
+--- scheme-private.h	14 Dec 2007 19:08:39 -0000	1.6
++++ scheme-private.h	14 Dec 2007 19:08:55 -0000
+@@ -2,7 +2,7 @@
+ 
+ #ifndef _SCHEME_PRIVATE_H
+ #define _SCHEME_PRIVATE_H
+-
++#include "httpd.h"
+ #include "scheme.h"
+ /*------------------ Ugly internals -----------------------------------*/
+ /*------------------ Of interest only to FFI users --------------------*/
+@@ -12,6 +12,7 @@
+   port_free=0, 
+   port_file=1, 
+   port_string=2, 
++  port_callback=4,
+   port_input=16, 
+   port_output=32 
+ };
+@@ -20,7 +21,7 @@
+   unsigned char kind;
+   union {
+     struct {
+-      FILE *file;
++      apr_file_t *file;
+       int closeit;
+     } stdio;
+     struct {
+@@ -28,6 +29,11 @@
+       char *past_the_end;
+       char *curr;
+     } string;
++    struct {
++      void *callback_range;
++      void *callback_byte;
++      void *data;
++    } callback;
+   } rep;
+ } port;
+ 
+@@ -145,6 +151,7 @@
+ 
+ int is_string(pointer p);
+ char *string_value(pointer p);
++int string_length(pointer p);
+ int is_number(pointer p);
+ num nvalue(pointer p);
+ long ivalue(pointer p);
+Index: scheme.c
+===================================================================
+RCS file: /var/cvsroot/tinyscheme/scheme.c,v
+retrieving revision 1.6
+diff -u -b -r1.6 scheme.c
+--- scheme.c	14 Dec 2007 19:08:39 -0000	1.6
++++ scheme.c	14 Dec 2007 19:08:52 -0000
+@@ -16,6 +16,9 @@
+ #include "scheme-private.h"
+ #ifndef WIN32
+ # include <unistd.h>
++#include <stdlib.h>
++#else
++# include <malloc.h>
+ #endif
+ #if USE_DL
+ # include "dynload.h"
+@@ -59,10 +62,7 @@
+ #define banner "TinyScheme 1.35"
+ 
+ #include <string.h>
+-#include <stdlib.h>
+-#ifndef macintosh
+-# include <malloc.h>
+-#else
++#ifdef macintosh
+ static int stricmp(const char *s1, const char *s2)
+ {
+   unsigned char c1, c2;
+@@ -117,7 +117,8 @@
+   T_MACRO=12,
+   T_PROMISE=13,
+   T_ENVIRONMENT=14,
+-  T_LAST_SYSTEM_TYPE=14
++  T_POINTER=15,
++  T_LAST_SYSTEM_TYPE=15
+ };
+ 
+ /* ADJ is enough slack to align cells in a TYPE_BITS-bit boundary */
+@@ -173,8 +174,12 @@
+   return (!(p)->_object._number.is_fixnum); 
+ }
+ 
++#define ptrvalue(p)      ((p)->_object._string._svalue)
++
++INTERFACE INLINE int is_pointer(pointer p) { return (type(p)==T_POINTER); }
+ INTERFACE INLINE int is_character(pointer p) { return (type(p)==T_CHARACTER); }
+ INTERFACE INLINE char *string_value(pointer p) { return strvalue(p); }
++INTERFACE INLINE int string_length(pointer p) { return strlength(p); }
+ INLINE num nvalue(pointer p)       { return ((p)->_object._number); }
+ INTERFACE long ivalue(pointer p)      { return (is_integer(p)?(p)->_object._number.value.ivalue:(long)(p)->_object._number.value.rvalue); }
+ INTERFACE double rvalue(pointer p)    { return (!is_integer(p)?(p)->_object._number.value.rvalue:(double)(p)->_object._number.value.ivalue); }
+@@ -328,10 +333,12 @@
+ static pointer mk_sharp_const(scheme *sc, char *name);
+ static pointer mk_port(scheme *sc, port *p);
+ static pointer port_from_filename(scheme *sc, const char *fn, int prop);
+-static pointer port_from_file(scheme *sc, FILE *, int prop);
++static pointer port_from_file(scheme *sc, apr_file_t *, int prop);
++static pointer port_from_callback(scheme *sc, void *, void *, void *data, int prop);
+ static pointer port_from_string(scheme *sc, char *start, char *past_the_end, int prop);
+ static port *port_rep_from_filename(scheme *sc, const char *fn, int prop);
+-static port *port_rep_from_file(scheme *sc, FILE *, int prop);
++static port *port_rep_from_file(scheme *sc, apr_file_t *, int prop);
++static port *port_rep_from_callback(scheme *sc, void *, void *, void *data, int prop);
+ static port *port_rep_from_string(scheme *sc, char *start, char *past_the_end, int prop);
+ static void port_close(scheme *sc, pointer p, int flag);
+ static void mark(pointer a);
+@@ -821,6 +828,24 @@
+   return (x);
+ }
+ 
++INTERFACE pointer mk_pointer(scheme *sc, void *ptr) {
++  pointer x = get_cell(sc,sc->NIL, sc->NIL);
++//  x->_object._number.is_fixnum = 0;
++  typeflag(x) = (T_POINTER | T_ATOM);
++  ptrvalue(x)= ptr;
++  return (x);
++}
++
++INTERFACE pointer mk_buff(scheme *sc, void *ptr, int length) {
++  pointer x = get_cell(sc,sc->NIL, sc->NIL);
++//  x->_object._number.is_fixnum = 0;
++  typeflag(x) = (T_POINTER | T_ATOM);
++  ptrvalue(x)= ptr;
++    strlength(x) = length;
++  return (x);
++}
++
++
+ INTERFACE pointer mk_character(scheme *sc, int c) {
+   pointer x = get_cell(sc,sc->NIL, sc->NIL);
+ 
+@@ -1226,7 +1251,14 @@
+ /* ========== Routines for Reading ========== */
+ 
+ static int file_push(scheme *sc, const char *fname) {
+-  FILE *fin=fopen(fname,"r");
++  //FILE *fin=fopen(fname,"r");//
++  apr_status_t rv;
++  apr_file_t *fin;
++  rv = apr_file_open(&fin, fname, APR_READ | APR_XTHREAD , APR_OS_DEFAULT, sc->ext_data);
++  if(rv != APR_SUCCESS) {
++    //ap_log_perror(APLOG_MARK, APLOG_NOERRNO | APLOG_DEBUG, rv, p,"couldn't open file \"%s\"", fname);                    
++    return 0;
++  }
+   if(fin!=0) {
+     sc->file_i++;
+     sc->load_stack[sc->file_i].kind=port_file|port_input;
+@@ -1251,12 +1283,14 @@
+ }
+ 
+ static int file_interactive(scheme *sc) {
+- return sc->file_i==0 && sc->load_stack[0].rep.stdio.file==stdin
+-     && sc->inport->_object._port->kind&port_file;
++// return sc->file_i==0 && sc->load_stack[0].rep.stdio.file==stdin
++//     && sc->inport->_object._port->kind&port_file;
++    return 0; // we are in mod_scheme
+ }
+ 
+ static port *port_rep_from_filename(scheme *sc, const char *fn, int prop) {
+-  FILE *f;
++  apr_file_t *f;
++  apr_status_t rv;
+   char *rw;
+   port *pt;
+   if(prop==(port_input|port_output)) {
+@@ -1266,7 +1300,13 @@
+   } else {
+     rw="r";
+   }
+-  f=fopen(fn,rw);
++  
++  rv = apr_file_open(&f, fn, APR_READ | APR_XTHREAD | APR_WRITE , APR_OS_DEFAULT, sc->ext_data);
++  if(rv != APR_SUCCESS) {
++    //ap_log_perror(APLOG_MARK, APLOG_NOERRNO | APLOG_DEBUG, rv, p,"couldn't open file \"%s\"", fname);                    
++    return 0;
++  }
++  //f=fopen(fn,rw);
+   if(f==0) {
+     return 0;
+   }
+@@ -1277,6 +1317,7 @@
+ 
+ static pointer port_from_filename(scheme *sc, const char *fn, int prop) {
+   port *pt;
++//  _exp();
+   pt=port_rep_from_filename(sc,fn,prop);
+   if(pt==0) {
+     return sc->NIL;
+@@ -1284,7 +1325,7 @@
+   return mk_port(sc,pt);
+ }
+ 
+-static port *port_rep_from_file(scheme *sc, FILE *f, int prop) {
++static port *port_rep_from_file(scheme *sc, apr_file_t *f, int prop) {
+   char *rw;
+   port *pt;
+   pt=(port*)sc->malloc(sizeof(port));
+@@ -1304,7 +1345,32 @@
+   return pt;
+ }
+ 
+-static pointer port_from_file(scheme *sc, FILE *f, int prop) {
++static port *port_rep_from_callback(scheme *sc, void *fxn, void *char_fxn, void *data, int prop) {
++//  char *rw;
++  port *pt;
++  pt=sc->malloc(sizeof(port));
++  if(pt==0) {
++    return 0;
++  }
++/* this is irrelevant now; besides I need to change the port struct again
++ * before adding input foreign fxns.
++ *  if(prop==(port_input|port_output)) {
++ *    rw="a+";
++ *  } else if(prop==port_output) {
++ *    rw="w";
++ *  } else {
++ *    rw="r";
++ *  }
++ */
++  pt->kind=port_callback|prop;
++  pt->rep.callback.callback_range=fxn;
++  pt->rep.callback.callback_byte=char_fxn;
++  pt->rep.callback.data=data;
++
++  return pt;
++}
++
++static pointer port_from_file(scheme *sc, apr_file_t *f, int prop) {
+   port *pt;
+   pt=port_rep_from_file(sc,f,prop);
+   if(pt==0) {
+@@ -1313,6 +1379,15 @@
+   return mk_port(sc,pt);
+ }
+ 
++static pointer port_from_callback(scheme *sc, void *fxn, void *char_fxn, void *data, int prop) {
++  port *pt;
++  pt=port_rep_from_callback(sc,fxn,char_fxn,data,prop);
++  if(pt==0) {
++    return sc->NIL;
++  }
++  return mk_port(sc,pt);
++}
++
+ static port *port_rep_from_string(scheme *sc, char *start, char *past_the_end, int prop) {
+   port *pt;
+   pt=(port*)sc->malloc(sizeof(port));
+@@ -1340,7 +1415,8 @@
+   pt->kind&=~flag;
+   if((pt->kind & (port_input|port_output))==0) {
+     if(pt->kind&port_file) {
+-      fclose(pt->rep.stdio.file);
++        apr_file_close(pt->rep.stdio.file);
++      //fclose(pt->rep.stdio.file);
+     }
+     pt->kind=port_free;
+   }
+@@ -1365,7 +1441,17 @@
+ 
+ static int basic_inchar(port *pt) {
+   if(pt->kind&port_file) {
+-    return fgetc(pt->rep.stdio.file);
++    char ch;
++    apr_status_t rc;
++    rc = apr_file_getc(&ch,pt->rep.stdio.file);
++    //return fgetc(pt->rep.stdio.file);
++    if (rc == APR_SUCCESS) return ch;
++    else return EOF;
++  } else {
++    if(pt->kind&port_callback) {
++      int (*fxn_ptr)(void *data);
++      fxn_ptr = pt->rep.callback.callback_byte;
++      return fxn_ptr(pt->rep.callback.data);
+   } else {
+     if(*pt->rep.string.curr==0
+        || pt->rep.string.curr==pt->rep.string.past_the_end) {
+@@ -1374,15 +1460,18 @@
+       return *pt->rep.string.curr++;
+     }
+   }
++  }
+ }
+ 
++
+ /* back character to input buffer */
+ static void backchar(scheme *sc, int c) {
+   port *pt;
+   if(c==EOF) return;
+   pt=sc->inport->_object._port;
+   if(pt->kind&port_file) {
+-    ungetc(c,pt->rep.stdio.file);
++    apr_file_ungetc ((char)c,pt->rep.stdio.file);//conversion should n't be a problem here.
++//    ungetc(c,pt->rep.stdio.file);
+   } else {
+     if(pt->rep.string.curr!=pt->rep.string.start) {
+       --pt->rep.string.curr;
+@@ -1391,22 +1480,42 @@
+ }
+ 
+ INTERFACE void putstr(scheme *sc, const char *s) {
++  void (*fxn_ptr)(char *,int,void *data);
++  int len;
+   port *pt=sc->outport->_object._port;
++//  _exp();
+   if(pt->kind&port_file) {
+-    fputs(s,pt->rep.stdio.file);
++      apr_file_puts(s,pt->rep.stdio.file);
++//    fputs(s,pt->rep.stdio.file);
++  } else {
++    if(pt->kind&port_callback) {
++      fxn_ptr = pt->rep.callback.callback_range;
++      len = strlen(s);
++      fxn_ptr((char *)s,len,pt->rep.callback.data);
+   } else {
++//  void (*fxn_ptr)(char *,int,void *data);
++//  int len;
+     for(;*s;s++) {
+       if(pt->rep.string.curr!=pt->rep.string.past_the_end) {
+ 	*pt->rep.string.curr++=*s;
+       }
+     }
+   }
++ }
+ }
+ 
+ static void putchars(scheme *sc, const char *s, int len) {
++  void (*fxn_ptr)(char *,int,void *data);
++  apr_size_t nbytes = len;
+   port *pt=sc->outport->_object._port;
++//  _exp();
+   if(pt->kind&port_file) {
+-    fwrite(s,1,len,pt->rep.stdio.file);
++      apr_file_write(pt->rep.stdio.file,s,&len);
++//    fwrite(s,1,len,pt->rep.stdio.file);
++  } else {
++    if(pt->kind&port_callback) {
++      fxn_ptr = pt->rep.callback.callback_range;
++      fxn_ptr((char *)s,len,pt->rep.callback.data);
+   } else {
+     for(;len;len--) {
+       if(pt->rep.string.curr!=pt->rep.string.past_the_end) {
+@@ -1414,17 +1523,26 @@
+       }
+     }
+   }
++ }
+ }
+ 
+ INTERFACE void putcharacter(scheme *sc, int c) {
++  void (*fxn_ptr)(int,void *data);
+   port *pt=sc->outport->_object._port;
++//  _exp();
+   if(pt->kind&port_file) {
+-    fputc(c,pt->rep.stdio.file);
++    apr_file_putc((char)c, pt->rep.stdio.file);//conversion is harmless
++    //fputc(c,pt->rep.stdio.file);
++  } else {
++    if(pt->kind&port_callback) {
++      fxn_ptr = pt->rep.callback.callback_byte;
++      fxn_ptr(c,pt->rep.callback.data);
+   } else {
+     if(pt->rep.string.curr!=pt->rep.string.past_the_end) {
+       *pt->rep.string.curr++=c;
+     }
+   }
++ }
+ }
+ 
+ /* read characters up to delimiter, but cater to character constants */
+@@ -1731,6 +1849,8 @@
+           sprintf(p, "#<FOREIGN PROCEDURE %ld>", procnum(l));
+      } else if (is_continuation(l)) {
+           p = "#<CONTINUATION>";
++     } else if (is_pointer(l)) {
++          p = "#<POINTER>";
+      } else {
+           p = "#<ERROR>";
+      }
+@@ -1995,7 +2115,7 @@
+ } 
+ 
+ /* ========== Evaluation Cycle ========== */
+-
++void scheme_exception(scheme *,char *);
+ 
+ static pointer _Error_1(scheme *sc, const char *s, pointer a) {
+ #if USE_ERROR_HOOK
+@@ -2168,12 +2288,16 @@
+ 
+ static pointer opexe_0(scheme *sc, enum scheme_opcodes op) {
+      pointer x, y;
+-
++     apr_size_t nbytes = 0;
+      switch (op) {
+      case OP_LOAD:       /* load */
+           if(file_interactive(sc)) {
+-               fprintf(sc->outport->_object._port->rep.stdio.file, 
+-		       "Loading %s\n", strvalue(car(sc->args)));
++               //fprintf(sc->outport->_object._port->rep.stdio.file, 
++               //"Loading %s\n", strvalue(car(sc->args)));
++               apr_file_puts("Loading ",sc->outport->_object._port->rep.stdio.file);
++               nbytes = strlength(car(sc->args));
++               apr_file_write(sc->outport->_object._port->rep.stdio.file,strvalue(car(sc->args)),&nbytes);
++               apr_file_puts("\n",sc->outport->_object._port->rep.stdio.file);
+           }
+           if (!file_push(sc,strvalue(car(sc->args)))) {
+                Error_1(sc,"unable to open", car(sc->args));
+@@ -2256,7 +2380,9 @@
+                     sc->code = cdr(sc->code);
+                     s_goto(sc,syntaxnum(x));
+                } else {/* first, eval top element and eval arguments */
+-                    s_save(sc,OP_E0ARGS, sc->NIL, sc->code);
++                   //rahul 
++                    //s_save(sc,OP_E0ARGS, sc->NIL, sc->code);
++                                        s_save(sc,OP_E0ARGS, sc->args, sc->code);
+                     /* If no macros => s_save(sc,OP_E1ARGS, sc->NIL, cdr(sc->code));*/
+                     sc->code = car(sc->code);
+                     s_goto(sc,OP_EVAL);
+@@ -3203,6 +3329,8 @@
+           s_retbool(is_integer(car(sc->args)));
+      case OP_REALP:     /* real? */
+           s_retbool(is_number(car(sc->args))); /* All numbers are real */
++     case OP_POINTERP:     /* pointer? */
++          s_retbool(is_pointer(car(sc->args)));
+      case OP_CHARP:     /* char? */
+           s_retbool(is_character(car(sc->args)));
+ #if USE_CHAR_CLASSIFIERS
+@@ -3851,7 +3979,8 @@
+   {is_vector, "vector"},
+   {is_number, "number"},
+   {is_num_integer, "integer"},
+-  {is_nonneg, "non-negative integer"}
++  {is_nonneg, "non-negative integer"},
++  {is_pointer, "pointer"}
+ };
+ 
+ #define TST_NONE 0
+@@ -3869,6 +3998,7 @@
+ #define TST_NUMBER "\014"
+ #define TST_INTEGER "\015"
+ #define TST_NATURAL "\016"
++#define TST_POINTER "\017"
+ 
+ typedef struct {
+   dispatch_func func;
+@@ -4057,6 +4187,7 @@
+   gensym,
+   mk_string,
+   mk_counted_string,
++  mk_pointer,
+   mk_character,
+   mk_vector,
+   mk_foreign_func,
+@@ -4071,6 +4202,7 @@
+   rvalue,
+   is_integer,
+   is_real,
++  is_pointer,
+   is_character,
+   charvalue,
+   is_vector,
+@@ -4227,7 +4359,7 @@
+   return !sc->no_memory;
+ }
+ 
+-void scheme_set_input_port_file(scheme *sc, FILE *fin) {
++void scheme_set_input_port_file(scheme *sc, apr_file_t *fin) {
+   sc->inport=port_from_file(sc,fin,port_input);
+ }
+ 
+@@ -4235,10 +4367,18 @@
+   sc->inport=port_from_string(sc,start,past_the_end,port_input);
+ }
+ 
+-void scheme_set_output_port_file(scheme *sc, FILE *fout) {
++void scheme_set_input_port_callback(scheme *sc, void *input_fxn,void *input_char_fxn, void *data) {
++  sc->inport=port_from_callback(sc,input_fxn,input_char_fxn,data,port_input);
++}
++
++void scheme_set_output_port_file(scheme *sc, apr_file_t *fout) {
+   sc->outport=port_from_file(sc,fout,port_output);
+ }
+ 
++void scheme_set_output_port_callback(scheme *sc, void *output_fxn,void *output_char_fxn, void *data) {
++  sc->outport=port_from_callback(sc,output_fxn,output_char_fxn,data,port_output);
++}
++
+ void scheme_set_output_port_string(scheme *sc, char *start, char *past_the_end) {
+   sc->outport=port_from_string(sc,start,past_the_end,port_output);
+ }
+@@ -4278,7 +4418,7 @@
+   }
+ }
+ 
+-void scheme_load_file(scheme *sc, FILE *fin) {
++void scheme_load_file(scheme *sc, apr_file_t *fin) {
+   dump_stack_reset(sc); 
+   sc->envir = sc->global_env;
+   sc->file_i=0;
+@@ -4286,9 +4426,9 @@
+   sc->load_stack[0].rep.stdio.file=fin;
+   sc->loadport=mk_port(sc,sc->load_stack);
+   sc->retcode=0;
+-  if(fin==stdin) {
+-    sc->interactive_repl=1;
+-  }
++//  if(fin==stdin) {
++    sc->interactive_repl=0;//never interactive in mod_scheme
++//  }
+   sc->inport=sc->loadport;
+   Eval_Cycle(sc, OP_T0LVL);
+   typeflag(sc->loadport)=T_ATOM;
+@@ -4340,6 +4480,19 @@
+      Eval_Cycle(sc,OP_EVAL);
+      }
+ 
++void scheme_call_func(scheme *sc, const char *procname, pointer cons) {
++     pointer carx=mk_symbol(sc,procname);
++     pointer cdrx=cons;
++
++     dump_stack_reset(sc);
++     sc->envir = sc->global_env;
++     sc->code = cons(sc,carx,cdrx);
++     sc->interactive_repl=0;
++     sc->retcode=0;
++     Eval_Cycle(sc,OP_EVAL);
++     }
++
++
+ void scheme_call(scheme *sc, pointer func, pointer args) { 
+    dump_stack_reset(sc); 
+    sc->envir = sc->global_env; 
+@@ -4373,7 +4526,7 @@
+   char *file_name=InitFile;
+   int retcode;
+   int isfile=1;
+-  
++    ap_assert(1!=1);//should never happen in mod_scheme 
+   if(argc==1) {
+     printf(banner);
+   }
+@@ -4407,6 +4560,7 @@
+       if(strcmp(file_name,"-")==0) {
+ 	fin=stdin;
+       } else if(isfile) {
++    ap_assert(1!=1);//should never happen in mod_scheme
+ 	fin=fopen(file_name,"r");
+       }
+       for(;*argv;argv++) {
+@@ -4417,6 +4571,7 @@
+       scheme_define(&sc,sc.global_env,mk_symbol(&sc,"*args*"),args);
+ 
+     } else {
++    ap_assert(1!=1);//should never happen in mod_scheme
+       fin=fopen(file_name,"r");
+     }
+     if(isfile && fin==0) {
+Index: scheme.h
+===================================================================
+RCS file: /var/cvsroot/tinyscheme/scheme.h,v
+retrieving revision 1.6
+diff -u -b -r1.6 scheme.h
+--- scheme.h	14 Dec 2007 19:08:39 -0000	1.6
++++ scheme.h	14 Dec 2007 19:08:55 -0000
+@@ -3,15 +3,16 @@
+ #ifndef _SCHEME_H
+ #define _SCHEME_H
+ 
+-#include <stdio.h>
+-
++//#include <stdio.h>
++#include "apr_file_io.h"
+ /*
+  * Default values for #define'd symbols
+  */
+ #ifndef STANDALONE       /* If used as standalone interpreter */
+-# define STANDALONE 1
++# define STANDALONE 0
+ #endif
+ 
++#define USE_DL 1
+ #ifndef _MSC_VER 
+ # define USE_STRCASECMP 1 
+ # define USE_STRLWR 1 
+@@ -102,6 +103,7 @@
+ # define USE_INTERFACE 0
+ #endif
+ 
++#define USE_MACRO
+ typedef struct scheme scheme;
+ typedef struct cell *pointer;
+ 
+@@ -122,14 +124,15 @@
+ SCHEME_EXPORT int scheme_init(scheme *sc);
+ SCHEME_EXPORT int scheme_init_custom_alloc(scheme *sc, func_alloc, func_dealloc);
+ SCHEME_EXPORT void scheme_deinit(scheme *sc);
+-void scheme_set_input_port_file(scheme *sc, FILE *fin);
++void scheme_set_input_port_file(scheme *sc, apr_file_t *fin);
+ void scheme_set_input_port_string(scheme *sc, char *start, char *past_the_end);
+-SCHEME_EXPORT void scheme_set_output_port_file(scheme *sc, FILE *fin);
++SCHEME_EXPORT void scheme_set_output_port_file(scheme *sc, apr_file_t *fin);
+ void scheme_set_output_port_string(scheme *sc, char *start, char *past_the_end);
+-SCHEME_EXPORT void scheme_load_file(scheme *sc, FILE *fin);
++SCHEME_EXPORT void scheme_load_file(scheme *sc, apr_file_t *fin);
+ SCHEME_EXPORT void scheme_load_string(scheme *sc, const char *cmd);
+ void scheme_apply0(scheme *sc, const char *procname);
+ SCHEME_EXPORT pointer scheme_apply1(scheme *sc, const char *procname, pointer);
++void scheme_call_func(scheme *sc, const char *procname, pointer cons);
+ void scheme_set_external_data(scheme *sc, void *p);
+ SCHEME_EXPORT void scheme_define(scheme *sc, pointer env, pointer symbol, pointer value);
+ 
+@@ -142,6 +145,8 @@
+ pointer gensym(scheme *sc);
+ pointer mk_string(scheme *sc, const char *str);
+ pointer mk_counted_string(scheme *sc, const char *str, int len);
++pointer mk_pointer(scheme *sc, void *ptr);
++pointer mk_buff(scheme *sc, void *ptr,int length);
+ pointer mk_character(scheme *sc, int c);
+ pointer mk_foreign_func(scheme *sc, foreign_func f);
+ void putstr(scheme *sc, const char *s);
+@@ -158,6 +163,7 @@
+   pointer (*gensym)(scheme *sc);
+   pointer (*mk_string)(scheme *sc, const char *str);
+   pointer (*mk_counted_string)(scheme *sc, const char *str, int len);
++  pointer (*mk_pointer)(scheme *sc, void *ptr);
+   pointer (*mk_character)(scheme *sc, int c);
+   pointer (*mk_vector)(scheme *sc, int len);
+   pointer (*mk_foreign_func)(scheme *sc, foreign_func f);
+@@ -172,6 +178,7 @@
+   double (*rvalue)(pointer p);
+   int (*is_integer)(pointer p);
+   int (*is_real)(pointer p);
++  int (*is_pointer)(pointer p);
+   int (*is_character)(pointer p);
+   long (*charvalue)(pointer p);
+   int (*is_vector)(pointer p);
+@@ -204,7 +211,7 @@
+   int (*is_environment)(pointer p);
+   int (*is_immutable)(pointer p);
+   void (*setimmutable)(pointer p);
+-  void (*load_file)(scheme *sc, FILE *fin);
++  void (*load_file)(scheme *sc, apr_file_t *fin);
+   void (*load_string)(scheme *sc, const char *input);
+ };
+ #endif

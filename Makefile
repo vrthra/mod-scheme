@@ -6,7 +6,7 @@ APACHE_INCLUDE=/usr/local/apache2/include
 APR_INCLUDE=/usr/local/include/apr-1
 
 #   the default target
-all: gen apxs
+all: gen ts apxs
 
 #   install the shared object file into Apache 
 install: install-modules
@@ -26,7 +26,8 @@ clobber:
 	-rm -rf .libs
 	-rm -f mod_scheme_bin.*
 	-rm -f *.loT
-	-rm -f tinyscheme/*.o tinyscheme/*.slo tinyscheme/*.lo
+	-rm -f tinyscheme
+
 
 gen: apache_gen aux_gen
 
@@ -51,6 +52,12 @@ aux_gen:
 	cd apache/auxiliary;perl ../../tools/genstruct.pl auxiliary . -dec
 	cd apache/auxiliary;perl ../../tools/genstruct.pl auxiliary . -doc
 	echo > aux_gen
+
+ts:
+	rm -rf tinyscheme
+	gzcat tinyscheme-1.35.tar.gz | tar -xvpf -
+	mv tinyscheme-1.35 tinyscheme
+	(cd tinyscheme; patch -u < ../patch.tinyscheme)
 
 apxs:
 	${APXS} -c -o mod_scheme.so -I. mod_scheme.c callback.c apache_symbols.c apache_tie.c internal.c tinyscheme/scheme.c tinyscheme/dynload.c
