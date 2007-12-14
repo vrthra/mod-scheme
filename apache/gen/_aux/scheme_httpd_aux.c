@@ -3,7 +3,7 @@
  * @brief HTTP Daemon routines
  */
 /* Headers in which EVERYONE has an interest... */
-#include "scheme-private.h"
+#include "tinyscheme/scheme-private.h"
 #include "apache/macros.h"
 #include "apache/ptr_types.h"
 #include "callback.h"

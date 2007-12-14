@@ -33,7 +33,7 @@ sub gen_src_and_headers {
 #include "%s.h"
 ///* now included in apache_symbols.c
 #include "apache/macros.h"
-#include "scheme-private.h"
+#include "tinyscheme/scheme-private.h"
 #include "apache/ptr_types.h"
 #include "callback.h"
 //*/
@@ -158,8 +158,8 @@ LINE
 
 sub create_proto_apache_symbols {
     my $src = <<EOF;
-#include "scheme.h"
-#include "scheme-private.h"
+#include "tinyscheme/scheme.h"
+#include "tinyscheme/scheme-private.h"
 #include "apache/macros.h"
 
 EOF

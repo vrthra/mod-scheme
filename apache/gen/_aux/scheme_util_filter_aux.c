@@ -6,7 +6,7 @@
 #include "apr_buckets.h"
 #include "util_filter.h"
 #include "httpd.h"
-#include "scheme-private.h"
+#include "tinyscheme/scheme-private.h"
 #if APR_HAVE_STDARG_H
 #include <stdarg.h>
 #endif

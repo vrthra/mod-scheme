@@ -3,7 +3,7 @@
 #ifndef MACROS_H
 	#define MACROS_H
 #ifndef WIN32
-#include "scheme.h"
+#include "tinyscheme/scheme.h"
 #else
 struct scheme;
 typedef struct scheme scheme;

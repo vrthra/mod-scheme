@@ -24,7 +24,7 @@
 
 #include "apr_strings.h"
 
-#include "scheme-private.h"
+#include "tinyscheme/scheme-private.h"
 #endif
 
 #define HANDLER 1

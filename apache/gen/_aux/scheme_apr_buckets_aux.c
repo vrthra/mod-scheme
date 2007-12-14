@@ -14,7 +14,7 @@
 #include "apr_buckets.h"
 
 #include "apache/macros.h"
-#include "scheme-private.h"
+#include "tinyscheme/scheme-private.h"
 #include "apache/ptr_types.h"
 #include "callback.h"
 */

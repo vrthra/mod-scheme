@@ -3,8 +3,8 @@
  * */
 #ifndef INTERNAL_H
     #define INTERNAL_H
-#include "scheme-private.h"
-#include "scheme.h"
+#include "tinyscheme/scheme-private.h"
+#include "tinyscheme/scheme.h"
 #include "callback.h"
 #ifndef WIN32
 #include <stdlib.h>

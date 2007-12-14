@@ -3,8 +3,8 @@
  * */
 #include "apr_lib.h"
 #include "apr_hash.h"
-#include "scheme-private.h"
-#include "scheme.h"
+#include "tinyscheme/scheme-private.h"
+#include "tinyscheme/scheme.h"
 #include "mod_scheme.h"
 #include "callback.h"
 
