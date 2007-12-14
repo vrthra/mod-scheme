@@ -42,7 +42,8 @@ void queue_add(interp_queue_t *queue,scheme *sc);
 scheme *queue_get(interp_queue_t *queue);
 scheme* scheme_get_interp(void * p);
 void scheme_release_interp(scheme *interp);
-int scheme_post_config(apr_pool_t *pconf, apr_pool_t *plog,apr_pool_t *ptemp, server_rec *s);
+int scheme_post_config(apr_pool_t *pconf, apr_pool_t *plog,apr_pool_t *ptemp,
+        server_rec *s);
 
 #endif
 

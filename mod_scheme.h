@@ -20,5 +20,6 @@ typedef struct {
     apr_hash_t   *out_filters;
 } sc_config;
 
-void scheme_set_output_port_callback(scheme *sc, void *output_fxn,void *output_char_fxn, void *data);
+void scheme_set_output_port_callback(scheme *sc, void *output_fxn,
+        void *output_char_fxn, void *data);
 #endif

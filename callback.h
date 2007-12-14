@@ -59,7 +59,7 @@ typedef struct {
         } _filter;
     } _callback;
     char * post_args;
-    request_rec *r;//this is a common feature amoung all
+    request_rec *r;//this is a common feature among all
 } callback_data;
 
 typedef struct {

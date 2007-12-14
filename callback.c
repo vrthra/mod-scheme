@@ -12,8 +12,10 @@ int callback_putc(int c,void *xtData){
 }
 
 int filter_write(  char *buff, int len,callback_data *data) {
-    //It is an error as direct filter write is not supported through (display).
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, data->_callback._filter.f->r, buff);
+    //It is an error as direct filter write is not supported
+    //through (display).
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, data->_callback._filter.f->r,
+            buff);
     return 0;
 }
 

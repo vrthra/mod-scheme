@@ -1,5 +1,6 @@
 /*      internal.c 
- *      Contains the functions necessary for creating storing and releasing interpretors.
+ *      Contains the functions necessary for creating storing and releasing
+ *      interpretors.
 */
 #include "scheme_code.h"
 #include "internal.h"

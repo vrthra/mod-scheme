@@ -1,19 +1,22 @@
-//Original Todd G
-//Changes .30 - rahul
-//    Output Filter (but breaks apache pipe-line)
-//    Updation to TinyScheme 1.33
-//  Todo :
-//    Input Filter, Post Args, and correct OFilter
-
-
-//Changes .31 - rahul
-//    Input Fiter works,
-//    older dir opening and files to use apr,
-//    Filters obey pipe-lining now.
-//    Updation to TinyScheme 1.33
-//  Todo :
-//    better error handling, more brigade apis, provide support for saving data in context (for use in filter underruns)
-//    get a better schemish api over the current reflected apache api (beginings in code (sc_))
+/* Original Todd G
+ * Changes .30 - rahul
+ *    Output Filter (but breaks apache pipe-line)
+ *    Updation to TinyScheme 1.33
+ *  Todo :
+ *    Input Filter, Post Args, and correct OFilter
+ * Changes .31 - rahul
+ *    Input Fiter works,
+ *    older dir opening and files to use apr,
+ *    Filters obey pipe-lining now.
+ *    Updation to TinyScheme 1.33
+ *  Todo :
+ *    better error handling, more brigade apis, provide support for saving data
+ *    in context (for use in filter underruns)
+ *    get a better schemish api over the current reflected apache api
+ *    (beginings in code (sc_))
+ * Changes .35 - rahul
+ *    Most Apache APIs added. Code simplified. updated to Apache 2.2.6
+ */
 
 #include "httpd.h"
 #include "http_config.h"
@@ -61,7 +64,8 @@ int scheme_load_libs(scheme *sc,const char *init_dir,apr_pool_t *p) {
         char * fullname = apr_pstrcat(p,init_dir,finfo.name,NULL);
         rc = apr_file_open(&file, fullname, APR_READ | APR_XTHREAD , APR_OS_DEFAULT, p);
         if(rc != APR_SUCCESS) {
-            ap_log_perror(APLOG_MARK, APLOG_NOERRNO | APLOG_DEBUG, rc, p,"couldn't open file \"%s\"", finfo.name);
+            ap_log_perror(APLOG_MARK, APLOG_NOERRNO | APLOG_DEBUG, rc, p,
+                    "couldn't open file \"%s\"", finfo.name);
             continue;
         }
         scheme_load_file(sc,file);
@@ -72,7 +76,8 @@ int scheme_load_libs(scheme *sc,const char *init_dir,apr_pool_t *p) {
 }
 
 /* init after DSO load */
-int scheme_post_config(apr_pool_t *pconf, apr_pool_t *plog,apr_pool_t *ptemp, server_rec *s) {
+int scheme_post_config(apr_pool_t *pconf, apr_pool_t *plog,apr_pool_t *ptemp,
+        server_rec *s) {
     scheme *interp;
     scheme_config_rec *conf;
     int interp_count,i;
@@ -111,8 +116,8 @@ void *create_scheme_server_config(apr_pool_t *p, server_rec *d) {
     return (void *)conf;
 }
 /*
- Allocate memory and initialize the strucure that will hold configuration parametes.
- This function is called on every hit it seems.
+ Allocate memory and initialize the strucure that will hold configuration
+ parametes.  This function is called on every hit it seems.
  */
 void *create_scheme_dir_config(apr_pool_t *p, char *dir) {
     sc_config *conf = scheme_create_config(p);
@@ -136,7 +141,8 @@ void scheme_log(scheme *sc,char * str) {
         if ( cdata->type == HANDLER )
             ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, cdata->r, str);
         else if ( cdata->type == FILTER )
-            ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, cdata->_callback._filter.f->r, str);
+            ap_log_rerror(APLOG_MARK, APLOG_ERR, 0,
+                    cdata->_callback._filter.f->r, str);
 }
 
 pointer scm_log(scheme *sc, pointer args) {
@@ -169,19 +175,22 @@ void scheme_load_all_symbols(scheme *sc) {
 }
 
 const char* set_init_dir(cmd_parms *parms, void *mconfig, const char *arg) {
-    scheme_config_rec *c = ap_get_module_config(parms->server->module_config,&scheme_module);
+    scheme_config_rec *c = ap_get_module_config(parms->server->module_config,
+            &scheme_module);
     c->init_dir =(char*) arg;
     return NULL;
 }
 
 const char* set_max_interps(cmd_parms *parms, void *mconfig,const char *arg) {
-    scheme_config_rec *c = ap_get_module_config(parms->server->module_config,&scheme_module);
+    scheme_config_rec *c = ap_get_module_config(parms->server->module_config,
+            &scheme_module);
     c->max_interps = atoi(arg);
     return NULL;
 }
 
 const char* set_min_interps(cmd_parms *parms, void *mconfig, const char *arg) {
-    scheme_config_rec *c = ap_get_module_config(parms->server->module_config,&scheme_module);
+    scheme_config_rec *c = ap_get_module_config(parms->server->module_config,
+            &scheme_module);
     c->min_interps = atoi(arg);
     return NULL;
 }
@@ -189,13 +198,15 @@ const char* set_min_interps(cmd_parms *parms, void *mconfig, const char *arg) {
 scheme* init_scheme_interp(callback_data *cdata) {
     scheme* interp;
     interp = scheme_get_interp(cdata->r->pool);
-    if (interp == 0) ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, cdata->r, "get_interp failed ");
+    if (interp == 0) ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, cdata->r,
+            "get_interp failed ");
     return interp;
 }
 
 int load_scheme_file(sc_handler *fh, callback_data *cdata,scheme * interp) {
     apr_file_t* file;
-    apr_status_t rc = apr_file_open(&file, fh->handler, APR_READ | APR_XTHREAD, APR_OS_DEFAULT, cdata->r->pool);
+    apr_status_t rc = apr_file_open(&file, fh->handler, APR_READ | APR_XTHREAD,
+            APR_OS_DEFAULT, cdata->r->pool);
     if(rc != APR_SUCCESS) {
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, cdata->r, "openSchemeFile");
         return 404;
@@ -213,7 +224,8 @@ apr_status_t child_cleanup(void* data) {
     return APR_SUCCESS;
 }
 
-apr_status_t scheme_filter(int type,ap_filter_t *f, apr_bucket_brigade *bb, ap_input_mode_t eMode, apr_read_type_e eBlock, apr_off_t nBytes) {
+apr_status_t scheme_filter(int type,ap_filter_t *f, apr_bucket_brigade *bb,
+        ap_input_mode_t eMode, apr_read_type_e eBlock, apr_off_t nBytes) {
     int is_input = type;
     ap_input_mode_t mode = eMode;
     apr_read_type_e block = eBlock;
@@ -228,11 +240,14 @@ apr_status_t scheme_filter(int type,ap_filter_t *f, apr_bucket_brigade *bb, ap_i
     // we only allow request level filters so far *
     req = f->r;
 
-    conf = (sc_config *) ap_get_module_config(req->per_dir_config, &scheme_module);
+    conf = (sc_config *) ap_get_module_config(req->per_dir_config,
+            &scheme_module);
     if (is_input)//get the handler we registered in set_output_filter
-        fh = apr_hash_get(conf->in_filters, f->frec->name, APR_HASH_KEY_STRING);
+        fh = apr_hash_get(conf->in_filters, f->frec->name,
+                APR_HASH_KEY_STRING);
     else
-        fh = apr_hash_get(conf->out_filters, f->frec->name, APR_HASH_KEY_STRING);
+        fh = apr_hash_get(conf->out_filters, f->frec->name,
+                APR_HASH_KEY_STRING);
 
     cdata =  apr_pcalloc(req->pool, sizeof(callback_data));
     cdata->r = req;
@@ -247,28 +262,32 @@ apr_status_t scheme_filter(int type,ap_filter_t *f, apr_bucket_brigade *bb, ap_i
     cdata->_callback._filter.dir = fh->dir;
 
     if (!f->ctx) {//contains the transparent parameter to verify error.
-        ctx = (scheme_filter_ctx *) apr_pcalloc(req->pool, sizeof(scheme_filter_ctx));
+        ctx = (scheme_filter_ctx *) apr_pcalloc(req->pool,
+                sizeof(scheme_filter_ctx));
         ctx->interp = init_scheme_interp(cdata);
         cdata->trace = 0;//tracing off
         if (ctx->interp == 0 ) return 500;
-        apr_pool_cleanup_register(req->pool,(void *)(ctx->interp),plain_cleanup,child_cleanup);
+        apr_pool_cleanup_register(req->pool,(void *)(ctx->interp),
+                plain_cleanup,child_cleanup);
         f->ctx = (void *)ctx;
         ctx->bb = apr_brigade_create(f->r->pool, f->c->bucket_alloc);
-        scheme_set_output_port_callback(ctx->interp,callback_write,callback_putc,cdata);
+        scheme_set_output_port_callback(ctx->interp,callback_write,
+                callback_putc,cdata);
         load_scheme_file(fh,cdata,ctx->interp);
     } else {
         ctx = (scheme_filter_ctx *) f->ctx;
     }
-    scheme_set_output_port_callback(ctx->interp,callback_write,callback_putc,cdata);
+    scheme_set_output_port_callback(ctx->interp,callback_write,callback_putc,
+            cdata);
     {
         pointer arg_cons =
             cons(ctx->interp,mk_integer(ctx->interp,type),
-                    cons(ctx->interp,mk_pointer(ctx->interp,(void *)f),
-                        cons(ctx->interp,mk_pointer(ctx->interp,(void *)bb),
-                            cons(ctx->interp,mk_integer(ctx->interp,eMode),
-                                cons(ctx->interp,mk_integer(ctx->interp,eBlock),
-                                    cons(ctx->interp,mk_int64(ctx->interp,nBytes),
-                                        ctx->interp->NIL))))));
+             cons(ctx->interp,mk_pointer(ctx->interp,(void *)f),
+              cons(ctx->interp,mk_pointer(ctx->interp,(void *)bb),
+               cons(ctx->interp,mk_integer(ctx->interp,eMode),
+                cons(ctx->interp,mk_integer(ctx->interp,eBlock),
+                 cons(ctx->interp,mk_int64(ctx->interp,nBytes),
+                  ctx->interp->NIL))))));
         if (type) {
             scheme_call_func(ctx->interp,"do_input_filter",arg_cons);
         } else  {
@@ -283,11 +302,13 @@ apr_status_t scheme_output_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
     return scheme_filter(0,f,bb,0,0,0);
 }
 
-apr_status_t scheme_input_filter(ap_filter_t *f, apr_bucket_brigade *bb, ap_input_mode_t mode, apr_read_type_e block, apr_off_t readbytes) {
+apr_status_t scheme_input_filter(ap_filter_t *f, apr_bucket_brigade *bb,
+        ap_input_mode_t mode, apr_read_type_e block, apr_off_t readbytes) {
     return scheme_filter(1,f,bb,mode,block,readbytes);
 }
 
-const char *set_filter(int type,cmd_parms *cmd, void *mconfig,const char *handler, const char *name,ap_filter_type pos) {
+const char *set_filter(int type,cmd_parms *cmd, void *mconfig,
+        const char *handler, const char *name,ap_filter_type pos) {
     sc_config *conf;
     sc_handler *fh;
     ap_filter_rec_t *frec;
@@ -316,20 +337,28 @@ const char *set_filter(int type,cmd_parms *cmd, void *mconfig,const char *handle
 }
 ap_filter_type get_pos(const char * position) {
     if (position == 0 ) return AP_FTYPE_RESOURCE;
-    else if (strcmp(position,"ap:ftype_resource") == 0 ) return AP_FTYPE_RESOURCE;
-    else if (strcmp(position,"ap:ftype_content_set") == 0 ) return AP_FTYPE_CONTENT_SET;
-    else if (strcmp(position,"ap:ftype_protocol") == 0 ) return AP_FTYPE_PROTOCOL;
-    else if (strcmp(position,"ap:ftype_transcode") == 0 ) return AP_FTYPE_TRANSCODE;
-    else if (strcmp(position,"ap:ftype_connection") == 0 ) return AP_FTYPE_CONNECTION;
-    else if (strcmp(position,"ap:ftype_network") == 0 ) return AP_FTYPE_NETWORK;
+    else if (strcmp(position,"ap:ftype_resource") == 0 )
+        return AP_FTYPE_RESOURCE;
+    else if (strcmp(position,"ap:ftype_content_set") == 0 )
+        return AP_FTYPE_CONTENT_SET;
+    else if (strcmp(position,"ap:ftype_protocol") == 0 )
+        return AP_FTYPE_PROTOCOL;
+    else if (strcmp(position,"ap:ftype_transcode") == 0 )
+        return AP_FTYPE_TRANSCODE;
+    else if (strcmp(position,"ap:ftype_connection") == 0 )
+        return AP_FTYPE_CONNECTION;
+    else if (strcmp(position,"ap:ftype_network") == 0 )
+        return AP_FTYPE_NETWORK;
     else return AP_FTYPE_RESOURCE;
 }
 
-const char *set_input_filter(cmd_parms *cmd, void *mconfig,const char *handler, const char *name,const char *position) {
+const char *set_input_filter(cmd_parms *cmd, void *mconfig,
+        const char *handler, const char *name,const char *position) {
     return set_filter(1,cmd,mconfig,handler,name,get_pos(position));
 }
 
-const char *set_output_filter(cmd_parms *cmd, void *mconfig,const char *handler, const char *name,const char *position) {
+const char *set_output_filter(cmd_parms *cmd, void *mconfig,
+        const char *handler, const char *name,const char *position) {
     return set_filter(0,cmd,mconfig,handler,name,get_pos(position));
 }
 
@@ -350,10 +379,12 @@ const command_rec scheme_conf_cmds[] = {
             RSRC_CONF,
             "Minimum number of interpreters kept in the pool."),
     AP_INIT_TAKE23(
-            "SchemeOutputFilter", set_output_filter, NULL, RSRC_CONF|ACCESS_CONF,
+            "SchemeOutputFilter", set_output_filter, NULL,
+            RSRC_CONF|ACCESS_CONF,
             "Scheme output filter."),
     AP_INIT_TAKE23(
-            "SchemeInputFilter", set_input_filter, NULL, RSRC_CONF|ACCESS_CONF,
+            "SchemeInputFilter", set_input_filter, NULL,
+            RSRC_CONF|ACCESS_CONF,
             "Scheme input filter."),
 
     {NULL}
@@ -371,9 +402,11 @@ int scheme_handler(request_rec *r) {
     if (strcmp(r->handler, "scheme-handler"))
         return DECLINED;
     r->content_type = "text/html";
-    rc = apr_file_open(&file, r->filename, APR_READ | APR_XTHREAD, APR_OS_DEFAULT, r->pool);
+    rc = apr_file_open(&file, r->filename, APR_READ | APR_XTHREAD,
+            APR_OS_DEFAULT, r->pool);
     if(rc != APR_SUCCESS) {
-        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,"Could not open file %s\n",r->filename);
+        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
+                "Could not open file %s\n",r->filename);
         return 404;
     }
     interp = scheme_get_interp(r->pool);
@@ -384,7 +417,8 @@ int scheme_handler(request_rec *r) {
     cdata =  apr_pcalloc(r->pool, sizeof(callback_data));
     cdata->r = r;
     cdata->type = HANDLER;
-    scheme_set_output_port_callback(interp,callback_write,callback_putc,cdata);
+    scheme_set_output_port_callback(interp,callback_write,
+            callback_putc,cdata);
     scheme_load_file(interp,file);
     {
         pointer arg_cons = cons(interp,mk_pointer(interp,r),interp->NIL);
@@ -409,7 +443,8 @@ struct Linker {
 
 
 int scheme_read_post_data(request_rec *r , char** buf){
-    apr_bucket_brigade *bb = apr_brigade_create(r->pool, r->connection->bucket_alloc);
+    apr_bucket_brigade *bb = apr_brigade_create(r->pool,
+            r->connection->bucket_alloc);
     int seen_eos = 0;
 
     char * postdata = 0;
@@ -422,10 +457,13 @@ int scheme_read_post_data(request_rec *r , char** buf){
     linker.len = 0;
     do {
         apr_bucket *bucket;
-        int rv = ap_get_brigade(r->input_filters, bb, AP_MODE_READBYTES, APR_BLOCK_READ, HUGE_STRING_LEN);
+        int rv = ap_get_brigade(r->input_filters, bb, AP_MODE_READBYTES,
+                APR_BLOCK_READ, HUGE_STRING_LEN);
         if (rv != APR_SUCCESS)  return rv;
 
-        for (bucket = APR_BRIGADE_FIRST(bb); bucket != APR_BRIGADE_SENTINEL(bb); bucket = APR_BUCKET_NEXT(bucket)) {
+        for (bucket = APR_BRIGADE_FIRST(bb);
+                bucket != APR_BRIGADE_SENTINEL(bb);
+                bucket = APR_BUCKET_NEXT(bucket)) {
             const char *data;
             LinkedList * node;
             apr_size_t len;
@@ -465,7 +503,8 @@ int scheme_read_post_data(request_rec *r , char** buf){
 
 int scheme_read_post_data_1(request_rec *r, char **rbuf) {
     apr_size_t len = 1024, tlen=0,count_bytes = 4096;
-    apr_bucket_brigade *brigade = apr_brigade_create(r->pool, r->connection->bucket_alloc);
+    apr_bucket_brigade *brigade = apr_brigade_create(r->pool,
+            r->connection->bucket_alloc);
     char * buf;
     buf =(char *) apr_palloc(r->pool, count_bytes);
     //
@@ -474,7 +513,8 @@ int scheme_read_post_data_1(request_rec *r, char **rbuf) {
     // need to make sure that if data is avaliable we fill the buffer completely.
     //
 
-    while (ap_get_brigade(r->input_filters, brigade, AP_MODE_READBYTES, APR_BLOCK_READ, len) == APR_SUCCESS) {
+    while (ap_get_brigade(r->input_filters, brigade, AP_MODE_READBYTES,
+                APR_BLOCK_READ, len) == APR_SUCCESS) {
         apr_brigade_flatten(brigade, buf, &len);
         apr_brigade_cleanup(brigade);
         tlen += len;

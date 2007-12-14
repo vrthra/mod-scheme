@@ -11,7 +11,8 @@
 #include "apache/macros.h"
 #include "apache_tie.h"
 /*
-The procedure that converts a char pointer to a string and returns a scheme string
+The procedure that converts a char pointer to a string and returns a
+scheme string
 */
 
 pointer scheme_read_apache_string(scheme *sc, pointer args) {
@@ -91,7 +92,8 @@ pointer scheme_read_apache_string_len(scheme *sc, pointer args) {
         pointer tempargs = pair_cdr(args);
         pointer len = pair_car(tempargs);
         int l = ivalue(len);
-        if (l == 0) return mk_counted_string(sc,"",l);//take care of cases when the buf is zero
+        //take care of cases when the buf is zero
+        if (l == 0) return mk_counted_string(sc,"",l);
         buf[l] = '\0';
         return mk_counted_string(sc,buf,l);
     }
@@ -105,7 +107,8 @@ pointer scheme_new_ptr(scheme *sc, pointer args) {
 
 
 void scheme_load_apache_tie_symbols(scheme *sc){
-//The symbols used for identifying which symbol-groups to load. used as >> (use apache:util_filter)
+//The symbols used for identifying which symbol-groups to load.
+//used as >> (use apache:util_filter)
     DEF_SYMBOL("apache:read_string",scheme_read_apache_string)
     DEF_SYMBOL("apache:nread_string",scheme_read_apache_string_len)
 

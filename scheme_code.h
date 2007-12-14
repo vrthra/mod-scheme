@@ -593,7 +593,3 @@ const char * scheme_init_code =
 "\n"
 "(gc-verbose #f)\n";
 
-
-
-
-
