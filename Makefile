@@ -26,7 +26,7 @@ clobber:
 	-rm -rf .libs
 	-rm -f mod_scheme_bin.*
 	-rm -f *.loT
-	-rm -f tinyscheme
+	-rm -rf tinyscheme
 
 
 gen: apache_gen aux_gen
