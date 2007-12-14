@@ -62,7 +62,8 @@ int scheme_load_libs(scheme *sc,const char *init_dir,apr_pool_t *p) {
     while(APR_SUCCESS == apr_dir_read(&finfo, APR_FINFO_DIRENT, dir) ) {
         apr_status_t rc;
         char * fullname = apr_pstrcat(p,init_dir,finfo.name,NULL);
-        rc = apr_file_open(&file, fullname, APR_READ | APR_XTHREAD , APR_OS_DEFAULT, p);
+        rc = apr_file_open(&file, fullname,
+                APR_READ | APR_XTHREAD,APR_OS_DEFAULT, p);
         if(rc != APR_SUCCESS) {
             ap_log_perror(APLOG_MARK, APLOG_NOERRNO | APLOG_DEBUG, rc, p,
                     "couldn't open file \"%s\"", finfo.name);
@@ -391,7 +392,8 @@ const command_rec scheme_conf_cmds[] = {
 };
 
 /* The sample content handler
-TODO:This needs to be rewritten to look and act like apache's own content handler.
+TODO:This needs to be rewritten to look and act like apache's
+own content handler.
 */
 
 int scheme_handler(request_rec *r) {
